@@ -17,13 +17,13 @@ with st.sidebar:
     st.header("About")
     st.info("Powered by **Gemini 2.5 Flash**")
     st.markdown("""
-    **Why Gemini 2.5 Flash?**
+    **Gemini 2.5 Flash advantages**
     - **Speed:** Next-gen inference speed for instant verification.
     - **Context Window:** Massive context window allows us to read full documentation without truncation.
     """)
 
 # --- Main Interface ---
-st.title("🛡️ AI Ad Script Verifier")
+st.title("🛡️ AdGPT Anti-Hallucination Guard")
 st.markdown("Ensure your ad copy is grounded in reality and consistent with your brand voice.")
 
 # --- Inputs ---
