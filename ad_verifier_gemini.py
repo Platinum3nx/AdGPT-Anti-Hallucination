@@ -83,74 +83,106 @@ if verify_btn:
                 try:
                     # Configure Gemini
                     genai.configure(api_key=gemini_key)
-                    model = genai.GenerativeModel('gemini-1.5-flash')
                     
-                    # Construction Prompt
-                    prompt = f"""
-                    You are a strict compliance and quality control officer for advertising.
+                    def get_best_model():
+                        """Dynamically finds the best available model supporting generateContent."""
+                        try:
+                            models = list(genai.list_models())
+                            # Filter for generateContent support
+                            valid_models = [m for m in models if 'generateContent' in m.supported_generation_methods]
+                            
+                            if not valid_models:
+                                return None, "No models found that support generateContent."
+                            
+                            # Priority: Flash -> Pro -> Any
+                            flash_model = next((m for m in valid_models if "flash" in m.name.lower()), None)
+                            if flash_model:
+                                return flash_model.name, [m.name for m in valid_models]
+                                
+                            pro_model = next((m for m in valid_models if "pro" in m.name.lower()), None)
+                            if pro_model:
+                                return pro_model.name, [m.name for m in valid_models]
+                                
+                            return valid_models[0].name, [m.name for m in valid_models]
+                        except Exception as e:
+                            return None, f"Error listing models: {str(e)}"
+
+                    model_name, debug_info = get_best_model()
                     
-                    Your task is to verify an 'Ad Script' against the ground truth text from a 'Source Website'.
-                    
-                    Step 1: Analyize the 'Source Website Text' to understand the facts, features, and tone.
-                    Step 2: Check the 'Ad Script' for any factual hallucinations (claims not supported by the website).
-                    Step 3: Analyze if the tone of the ad matches the website's voice.
-                    Step 4: Assign a quality score from 0-100.
-                    
-                    Return a valid JSON object ONLY. Do not use Markdown code blocks.
-                    Structure:
-                    {{
-                        "score": (integer 0-100),
-                        "hallucinations": ["string list of specific claims in the ad that exist nowhere on the site"],
-                        "tone_consistency": "Brief analysis of whether the ad voice matches the site voice",
-                        "verdict": "PASS" (if score > 80 and no major hallucinations) or "FAIL"
-                    }}
-                    
-                    ---
-                    Source Website Text:
-                    {site_text[:30000]} 
-                    
-                    ---
-                    Ad Script:
-                    {ad_script}
-                    """
-                    # Truncate site text to avoid token limits if extremely large, though Flash has ~1M context. Safe guard at 30k chars for now for speed/safety.
-                    
-                    response = model.generate_content(prompt)
-                    
-                    # Clean response if necessary (Gemini sometimes adds ```json ... ```)
-                    text_resp = response.text.strip()
-                    if text_resp.startswith("```"):
-                        text_resp = text_resp.split("```")[1]
-                        if text_resp.startswith("json"):
-                             text_resp = text_resp[4:]
-                    text_resp = text_resp.strip()
-                    
-                    result = json.loads(text_resp)
-                    
-                    # --- Results Display ---
-                    
-                    # Score
-                    st.metric(label="Quality Score", value=result.get("score", 0))
-                    
-                    # Verdict
-                    verdict = result.get("verdict", "FAIL").upper()
-                    if verdict == "PASS":
-                        st.success(f"Verdict: {verdict}")
+                    if not model_name:
+                        st.error(f"Could not find a valid model. Debug info: {debug_info}")
                     else:
-                        st.error(f"Verdict: {verdict}")
+                        st.info(f"Using model: **{model_name}**")
+                        model = genai.GenerativeModel(model_name)
                     
-                    # Tone
-                    st.markdown("### Tone Analysis")
-                    st.write(result.get("tone_consistency", "N/A"))
-                    
-                    # Hallucinations
-                    hallucinations = result.get("hallucinations", [])
-                    if hallucinations:
-                        st.error("### ⚠️ Potential Hallucinations Detected")
-                        for h in hallucinations:
-                            st.write(f"- {h}")
-                    elif verdict == "PASS":
-                         st.success("No factual hallucinations detected.")
+                        # Construction Prompt
+                        prompt = f"""
+                        You are a strict compliance and quality control officer for advertising.
+                        
+                        Your task is to verify an 'Ad Script' against the ground truth text from a 'Source Website'.
+                        
+                        Step 1: Analyize the 'Source Website Text' to understand the facts, features, and tone.
+                        Step 2: Check the 'Ad Script' for any factual hallucinations (claims not supported by the website).
+                        Step 3: Analyze if the tone of the ad matches the website's voice.
+                        Step 4: Assign a quality score from 0-100.
+                        
+                        Return a valid JSON object ONLY. Do not use Markdown code blocks.
+                        Structure:
+                        {{
+                            "score": (integer 0-100),
+                            "hallucinations": ["string list of specific claims in the ad that exist nowhere on the site"],
+                            "tone_consistency": "Brief analysis of whether the ad voice matches the site voice",
+                            "verdict": "PASS" (if score > 80 and no major hallucinations) or "FAIL"
+                        }}
+                        
+                        ---
+                        Source Website Text:
+                        {site_text[:30000]} 
+                        
+                        ---
+                        Ad Script:
+                        {ad_script}
+                        """
+                        # Truncate site text to avoid token limits if extremely large, though Flash has ~1M context. Safe guard at 30k chars for now for speed/safety.
+                        
+                        response = model.generate_content(prompt)
+                        
+                        # Clean response if necessary (Gemini sometimes adds ```json ... ```)
+                        text_resp = response.text.strip()
+                        if text_resp.startswith("```"):
+                            parts = text_resp.split("```")
+                            if len(parts) >= 2:
+                                text_resp = parts[1]
+                                if text_resp.startswith("json"):
+                                     text_resp = text_resp[4:]
+                        text_resp = text_resp.strip()
+                        
+                        result = json.loads(text_resp)
+                        
+                        # --- Results Display ---
+                        
+                        # Score
+                        st.metric(label="Quality Score", value=result.get("score", 0))
+                        
+                        # Verdict
+                        verdict = result.get("verdict", "FAIL").upper()
+                        if verdict == "PASS":
+                            st.success(f"Verdict: {verdict}")
+                        else:
+                            st.error(f"Verdict: {verdict}")
+                        
+                        # Tone
+                        st.markdown("### Tone Analysis")
+                        st.write(result.get("tone_consistency", "N/A"))
+                        
+                        # Hallucinations
+                        hallucinations = result.get("hallucinations", [])
+                        if hallucinations:
+                            st.error("### ⚠️ Potential Hallucinations Detected")
+                            for h in hallucinations:
+                                st.write(f"- {h}")
+                        elif verdict == "PASS":
+                             st.success("No factual hallucinations detected.")
 
                 except Exception as e:
                     st.error(f"Analysis failed: {str(e)}")
