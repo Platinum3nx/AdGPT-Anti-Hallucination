@@ -1,0 +1,15 @@
+Product Name: Icon Ad-Verifier (Powered by Gemini 1.5) Objective: A "Brand Safety" tool that compares an 
+AI-generated ad script against a live landing page to catch hallucinations (fake claims) and ensure tone 
+consistency. Target User: Icon internal teams or high-volume ad generators.
+
+Core Features:
+
+Deep Scraping: Extracts all text content from a provided URL (leveraging Gemini's large context window).
+
+Fact-Checking: Uses gemini-1.5-flash to cross-reference every claim in the script against the scraped text.
+
+Strict JSON Output: Uses Gemini’s native JSON mode to ensure the code never breaks due to bad formatting.
+
+UI: Streamlit dashboard with "Pass/Fail" indicators.
+
+Tech Stack: Python, Streamlit, google-generativeai (Gemini SDK), BeautifulSoup4.
