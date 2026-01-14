@@ -79,7 +79,7 @@ if verify_btn:
         if site_text.startswith("ERROR:"):
             st.error(f"Failed to scrape website: {site_text}")
         else:
-            with st.spinner("Analyzing with Gemini 1.5 Flash..."):
+            with st.spinner("Analyzing with Gemini 2.5 Flash..."):
                 try:
                     # Configure Gemini
                     genai.configure(api_key=gemini_key)
