@@ -15,11 +15,11 @@ st.set_page_config(
 # --- Sidebar ---
 with st.sidebar:
     st.header("About")
-    st.info("Powered by **Gemini 1.5 Flash**")
+    st.info("Powered by **Gemini 2.5 Flash**")
     st.markdown("""
-    **Why Gemini 1.5 Flash?**
-    - **Speed:** Extremely fast inference for real-time verification.
-    - **Context Window:** Large context window allows it to read and understand entire website contents easily.
+    **Why Gemini 2.5 Flash?**
+    - **Speed:** Next-gen inference speed for instant verification.
+    - **Context Window:** Massive context window allows us to read full documentation without truncation.
     """)
 
 # --- Main Interface ---
